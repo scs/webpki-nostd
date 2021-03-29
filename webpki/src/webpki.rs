@@ -24,25 +24,28 @@
 #![allow(missing_debug_implementations)]
 // `#[derive(...)]` uses `#[allow(unused_qualifications)]` internally.
 #![deny(unused_qualifications)]
-#![forbid(
-    anonymous_parameters,
-    box_pointers,
-    missing_copy_implementations,
-    missing_docs,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_extern_crates,
-    unused_import_braces,
-    unused_results,
-    variant_size_differences,
-    warnings
-)]
+// #![forbid(
+//     anonymous_parameters,
+//     box_pointers,
+//     missing_copy_implementations,
+//     missing_docs,
+//     trivial_casts,
+//     trivial_numeric_casts,
+//     unsafe_code,
+//     unstable_features,
+//     unused_extern_crates,
+//     unused_import_braces,
+//     unused_results,
+//     variant_size_differences,
+//     warnings
+// )]
 
 #[cfg(all(test, not(feature = "std")))]
 #[macro_use]
 extern crate std;
+
+#[cfg(target_arch = "wasm32")]
+extern crate ring_wasmable as ring;
 
 #[macro_use]
 mod der;
