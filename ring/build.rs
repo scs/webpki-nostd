@@ -14,23 +14,26 @@
 
 //! Build the non-Rust components.
 
-#![forbid(
-    anonymous_parameters,
-    box_pointers,
-    missing_copy_implementations,
-    missing_debug_implementations,
-    missing_docs,
-    trivial_casts,
-    trivial_numeric_casts,
-    unsafe_code,
-    unstable_features,
-    unused_extern_crates,
-    unused_import_braces,
-    unused_qualifications,
-    unused_results,
-    variant_size_differences,
-    warnings
-)]
+// #![forbid(
+//     anonymous_parameters,
+//     box_pointers,
+//     missing_copy_implementations,
+//     missing_debug_implementations,
+//     missing_docs,
+//     trivial_casts,
+//     trivial_numeric_casts,
+//     unsafe_code,
+//     unstable_features,
+//     unused_extern_crates,
+//     unused_import_braces,
+//     unused_qualifications,
+//     unused_results,
+//     variant_size_differences,
+//     warnings
+// )]
+// #![allow(
+//     panic_fmt
+// )]
 
 // In the `pregenerate_asm_main()` case we don't want to access (Cargo)
 // environment variables at all, so avoid `use std::env` here.
@@ -293,6 +296,7 @@ fn ring_build_rs_main() {
         is_git,
         is_debug,
     };
+    maybe_set_toolchain(&target);
     let pregenerated = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join(PREGENERATED);
 
     build_c_code(&target, pregenerated, &out_dir);
@@ -339,6 +343,54 @@ struct Target {
     is_debug: bool,
 }
 
+fn maybe_set_toolchain(target: &Target) {
+    use which::which;
+
+    let versions = [11, 10, 9];
+    let mut compatible_tools: Option<(String, String)> = None;
+    for v in &versions {
+        let clang = format!("clang-{}", v);
+        let ar = format!("llvm-ar-{}", v);
+
+        match (which(&clang), which(&ar)) {
+            (Ok(_), Ok(_)) => {
+                compatible_tools = Some((clang, ar));
+                break;
+            },
+            _ => ()
+        }
+    }
+    if compatible_tools == None {
+        let clang = String::from("clang");
+        let ar = String::from("ar");
+
+        match (which(&clang), which(&ar)) {
+            (Ok(_), Ok(_)) => {
+                compatible_tools = Some((clang, ar));
+            },
+            _ => ()
+        };
+    }
+    if compatible_tools == None {
+        let clang = String::from("clang");
+        let ar = String::from("llvm-ar");
+
+        match (which(&clang), which(&ar)) {
+            (Ok(_), Ok(_)) => {
+                compatible_tools = Some((clang, ar));
+            },
+            _ => ()
+        };
+    }
+
+    if let Some((clang, ar)) = compatible_tools {
+        std::env::set_var("CC_wasm32-unknown-unknown", &clang);
+        std::env::set_var("AR_wasm32-unknown-unknown", &ar);
+    } else if target.arch == "wasm32" {
+        panic!("{}", "One of the compatible llvm toolchain must exist: llvm-{11,10,9}");
+    }
+}
+
 fn cc_add_target_flag(builder: &mut cc::Build, target: &Target) {
     if target.arch == "wasm32" {
         let _ = builder.target("wasm32-unknown-unknown")
@@ -376,7 +428,7 @@ fn build_c_code(target: &Target, pregenerated: PathBuf, out_dir: &Path) {
             let &(entry_arch, entry_os, _) = *entry;
             entry_arch == &target.arch && is_none_or_equals(entry_os, &target.os)
         });
-    
+
     match target_tuple {
         Some((_, _, perlasm_format)) => {
             let use_pregenerated = false;
@@ -386,10 +438,10 @@ fn build_c_code(target: &Target, pregenerated: PathBuf, out_dir: &Path) {
             } else {
                 out_dir
             };
-        
+
             let perlasm_src_dsts =
                 perlasm_src_dsts(asm_dir, &target.arch, Some(&target.os), perlasm_format);
-        
+
             if !use_pregenerated {
                 perlasm(
                     &perlasm_src_dsts[..],
@@ -398,9 +450,9 @@ fn build_c_code(target: &Target, pregenerated: PathBuf, out_dir: &Path) {
                     Some(includes_modified),
                 );
             }
-        
+
             asm_srcs_files = asm_srcs(perlasm_src_dsts);
-        
+
             // For Windows we also pregenerate the object files for non-Git builds so
             // the user doesn't need to install the assembler. On other platforms we
             // assume the C compiler also assembles.
