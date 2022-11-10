@@ -64,7 +64,7 @@ trust_anchor_util = ["std"]
 std = []
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-ring_wasmable = { package = "ring", path = "../ring", version = "0.16.0", default-features = false, features = ["alloc"] }
+ring_wasmable = { package = "ring", git = "https://github.com/Niederb/ring-xous.git", branch = "0.16.20-cleanup", default-features = false, features = ["alloc"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 ring = { version = "0.16.0", default-features = false, features = ["alloc"] }
