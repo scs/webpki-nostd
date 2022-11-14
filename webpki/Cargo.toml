@@ -67,7 +67,7 @@ std = []
 ring_wasmable = { package = "ring", git = "https://github.com/Niederb/ring-xous.git", branch = "0.16.20-cleanup", default-features = false, features = ["alloc"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-ring = { version = "0.16.0", default-features = false, features = ["alloc"] }
+ring = { version = "0.16.20", default-features = false, features = ["alloc"] }
 
 [dependencies]
 untrusted = "0.7.0"
